@@ -20,5 +20,5 @@ setup(
         "License :: OSI Approved :: MIT License",
         "Operating System :: OS Independent",
     ],
-    url="https://github.com/YOUR_USERNAME/Image-Text-Embedder",
+    url="https://github.com/kamalgrok06/Image-Text-Embedder",
 )
