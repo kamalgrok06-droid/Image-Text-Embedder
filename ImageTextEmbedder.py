@@ -1,228 +1,155 @@
+# Advanced Professional Version with Requested Features
+
 import tkinter as tk
 from tkinter import ttk, filedialog, messagebox
 from PIL import Image, ImageDraw, ImageFont
 import os
-from pathlib import Path
 import threading
 
 class ImageTextEmbedder:
     def __init__(self, root):
         self.root = root
-        self.root.title("Image Text Embedder - Batch Processor")
-        self.root.geometry("800x700")
-        self.root.resizable(True, True)
-        
-        # Variables
+        self.root.title("Professional Image Text Processor")
+        self.root.geometry("800x650")
+
         self.image_files = []
         self.output_folder = ""
-        
+        self.processed_images = []  # store previews before saving
+
         self.setup_ui()
-        
+
     def setup_ui(self):
-        # Main frame
-        main_frame = ttk.Frame(self.root, padding="10")
-        main_frame.grid(row=0, column=0, sticky=(tk.W, tk.E, tk.N, tk.S))
-        
-        # File selection
-        ttk.Label(main_frame, text="Select Images:").grid(row=0, column=0, sticky=tk.W, pady=5)
-        ttk.Button(main_frame, text="Add Images", command=self.add_images).grid(row=0, column=1, padx=5)
-        ttk.Button(main_frame, text="Clear List", command=self.clear_images).grid(row=0, column=2, padx=5)
-        
-        self.file_listbox = tk.Listbox(main_frame, height=6)
-        self.file_listbox.grid(row=1, column=0, columnspan=3, sticky=(tk.W, tk.E), pady=5)
-        
-        # Scrollbar for listbox
-        scrollbar = ttk.Scrollbar(main_frame, orient=tk.VERTICAL, command=self.file_listbox.yview)
-        scrollbar.grid(row=1, column=3, sticky=(tk.N, tk.S))
-        self.file_listbox.configure(yscrollcommand=scrollbar.set)
-        
-        # Output folder
-        ttk.Label(main_frame, text="Output Folder:").grid(row=2, column=0, sticky=tk.W, pady=(20,5))
+        frame = ttk.Frame(self.root, padding=10)
+        frame.pack(fill="both", expand=True)
+
+        ttk.Button(frame, text="Select Input Folder", command=self.select_input_folder).pack(pady=5)
+
+        ttk.Label(frame, text="Output Folder").pack(anchor="w")
         self.output_var = tk.StringVar()
-        ttk.Entry(main_frame, textvariable=self.output_var, width=50).grid(row=2, column=1, sticky=(tk.W, tk.E), padx=5)
-        ttk.Button(main_frame, text="Browse", command=self.select_output_folder).grid(row=2, column=2)
-        
-        # Text settings frame
-        text_frame = ttk.LabelFrame(main_frame, text="Text Overlay Settings", padding="10")
-        text_frame.grid(row=3, column=0, columnspan=3, sticky=(tk.W, tk.E), pady=10)
-        
-        # Text content
-        ttk.Label(text_frame, text="Text to Embed:").grid(row=0, column=0, sticky=tk.W)
-        self.text_var = tk.StringVar(value="Your Text Here")
-        ttk.Entry(text_frame, textvariable=self.text_var, width=40).grid(row=0, column=1, padx=5, pady=5)
-        
-        # Font size
-        ttk.Label(text_frame, text="Font Size:").grid(row=1, column=0, sticky=tk.W)
-        self.font_size_var = tk.IntVar(value=48)
-        font_size_spin = ttk.Spinbox(text_frame, from_=12, to=200, textvariable=self.font_size_var, width=10)
-        font_size_spin.grid(row=1, column=1, sticky=tk.W, padx=5, pady=5)
-        
-        # Text color
-        ttk.Label(text_frame, text="Text Color:").grid(row=2, column=0, sticky=tk.W)
-        self.color_var = tk.StringVar(value="#FFFFFF")
-        ttk.Entry(text_frame, textvariable=self.color_var, width=12).grid(row=2, column=1, sticky=tk.W, padx=5, pady=5)
-        ttk.Button(text_frame, text="Color Picker", command=self.color_picker).grid(row=2, column=2, padx=5)
-        
-        # Position
-        ttk.Label(text_frame, text="Position:").grid(row=3, column=0, sticky=tk.W)
-        self.position_var = tk.StringVar(value="bottom")
-        position_combo = ttk.Combobox(text_frame, textvariable=self.position_var, 
-                                    values=["top-left", "top-right", "bottom-left", "bottom-right", "center"], 
-                                    state="readonly", width=12)
-        position_combo.grid(row=3, column=1, sticky=tk.W, padx=5, pady=5)
-        
-        # Background
-        self.bg_var = tk.BooleanVar(value=True)
-        ttk.Checkbutton(text_frame, text="Add Background Box", variable=self.bg_var).grid(row=4, column=0, columnspan=2, sticky=tk.W)
-        
-        # Process button
-        self.process_btn = ttk.Button(main_frame, text="Process All Images", command=self.start_processing)
-        self.process_btn.grid(row=4, column=0, columnspan=3, pady=20)
-        
-        # Progress
-        self.progress = ttk.Progressbar(main_frame, mode='determinate')
-        self.progress.grid(row=5, column=0, columnspan=3, sticky=(tk.W, tk.E), pady=5)
-        
-        self.status_label = ttk.Label(main_frame, text="Ready")
-        self.status_label.grid(row=6, column=0, columnspan=3)
-        
-        # Configure grid weights
-        self.root.columnconfigure(0, weight=1)
-        self.root.rowconfigure(0, weight=1)
-        main_frame.columnconfigure(1, weight=1)
-        
-    def add_images(self):
-        files = filedialog.askopenfilenames(
-            title="Select Images",
-            filetypes=[("Image files", "*.jpg *.jpeg *.png *.bmp *.tiff *.webp")]
-        )
-        for file in files:
-            if file not in self.image_files:
-                self.image_files.append(file)
-                self.file_listbox.insert(tk.END, os.path.basename(file))
-    
-    def clear_images(self):
-        self.image_files.clear()
-        self.file_listbox.delete(0, tk.END)
-    
-    def select_output_folder(self):
-        folder = filedialog.askdirectory(title="Select Output Folder")
+        ttk.Entry(frame, textvariable=self.output_var).pack(fill="x")
+        ttk.Button(frame, text="Browse Output", command=self.select_output).pack(pady=5)
+
+        settings = ttk.LabelFrame(frame, text="Text Settings", padding=10)
+        settings.pack(fill="x", pady=10)
+
+        ttk.Label(settings, text="Font Size").grid(row=0, column=0)
+        self.font_size = tk.IntVar(value=40)
+        ttk.Spinbox(settings, from_=10, to=200, textvariable=self.font_size).grid(row=0, column=1)
+
+        ttk.Label(settings, text="Position").grid(row=1, column=0)
+        self.position = tk.StringVar(value="bottom-right")
+        ttk.Combobox(settings, textvariable=self.position,
+                     values=["top-left", "top-right", "bottom-left", "bottom-right", "center"],
+                     state="readonly").grid(row=1, column=1)
+
+        ttk.Button(frame, text="Process Images", command=self.start_processing).pack(pady=10)
+
+        self.preview_frame = ttk.Frame(frame)
+        self.preview_frame.pack(fill="both", expand=True)
+
+        self.save_btn = ttk.Button(frame, text="Save All Images", command=self.save_all, state="disabled")
+        self.save_btn.pack(pady=10)
+
+    def select_input_folder(self):
+        folder = filedialog.askdirectory(title="Select Input Folder")
         if folder:
-            self.output_var.set(folder)
+            self.image_files = [os.path.join(folder, f) for f in os.listdir(folder)
+                                if f.lower().endswith((".png", ".jpg", ".jpeg", ".webp"))]
+            messagebox.showinfo("Loaded", f"{len(self.image_files)} images loaded")
+
+    def select_output(self):
+        folder = filedialog.askdirectory()
+        if folder:
             self.output_folder = folder
-    
-    def color_picker(self):
-        color_window = tk.Toplevel(self.root)
-        color_window.title("Pick Color")
-        color_window.geometry("300x300")
-        
-        canvas = tk.Canvas(color_window, width=280, height=200, bg="white")
-        canvas.pack(pady=10)
-        
-        def update_color(event):
-            x, y = canvas.canvasx(event.x), canvas.canvasy(event.y)
-            color_hex = "#{:02x}{:02x}{:02x}".format(int(x/1.4), int(y/1.4), 255-int(y/1.4))
-            self.color_var.set(color_hex)
-            canvas.config(bg=color_hex)
-        
-        canvas.bind("<Button-1>", update_color)
-    
-    def get_position_xy(self, img_width, img_height, position):
-        positions = {
-            "top-left": (20, 20),
-            "top-right": (img_width - 200, 20),
-            "bottom-left": (20, img_height - 80),
-            "bottom-right": (img_width - 200, img_height - 80),
-            "center": (img_width // 2 - 100, img_height // 2 - 40)
-        }
-        return positions.get(position, (20, img_height - 80))
-    
-    def process_images(self):
-        if not self.image_files or not self.output_folder:
-            messagebox.showerror("Error", "Please select images and output folder!")
-            return
-        
+            self.output_var.set(folder)
+
+    def get_font(self, size):
         try:
-            total = len(self.image_files)
-            self.progress['maximum'] = total
-            self.progress['value'] = 0
-            
-            for i, img_path in enumerate(self.image_files):
-                self.status_label.config(text=f"Processing: {os.path.basename(img_path)} ({i+1}/{total})")
-                self.root.update()
-                
-                # Open image
-                with Image.open(img_path) as img:
-                    # Convert to RGBA if not already
-                    if img.mode != 'RGBA':
-                        img = img.convert('RGBA')
-                    
-                    draw = ImageDraw.Draw(img)
-                    
-                    try:
-                        # Try to use custom font, fallback to default
-                        font = ImageFont.truetype("arial.ttf", self.font_size_var.get())
-                    except:
-                        font = ImageFont.load_default()
-                    
-                    # Text settings
-                    text = self.text_var.get()
-                    bbox = draw.textbbox((0, 0), text, font=font)
-                    text_width = bbox[2] - bbox[0]
-                    text_height = bbox[3] - bbox[1]
-                    
-                    # Get position
-                    img_width, img_height = img.size
-                    x, y = self.get_position_xy(img_width, img_height, self.position_var.get())
-                    
-                    # Center text if needed
-                    if self.position_var.get() == "center":
-                        x -= text_width // 2
-                        y -= text_height // 2
-                    
-                    # Draw background if enabled
-                    if self.bg_var.get():
-                        bg_padding = 10
-                        draw.rectangle(
-                            [x - bg_padding, y - bg_padding, 
-                             x + text_width + bg_padding, y + text_height + bg_padding],
-                            fill=(0, 0, 0, 128)
-                        )
-                    
-                    # Draw text
-                    color = tuple(int(self.color_var.get()[i:i+2], 16) for i in (1, 3, 5)) + (255,)
-                    draw.text((x, y), text, font=font, fill=color)
-                
-                # Save processed image
-                filename = os.path.splitext(os.path.basename(img_path))[0] + "_text.png"
-                output_path = os.path.join(self.output_folder, filename)
-                img.save(output_path, "PNG")
-                
-                self.progress['value'] = i + 1
-                self.root.update()
-            
-            self.status_label.config(text=f"Completed! Processed {total} images.")
-            messagebox.showinfo("Success", f"Successfully processed {total} images!\nOutput: {self.output_folder}")
-            
-        except Exception as e:
-            messagebox.showerror("Error", f"Processing failed: {str(e)}")
-        finally:
-            self.process_btn.config(state='normal')
-    
+            return ImageFont.truetype("Aptos.ttf", size)
+        except:
+            return ImageFont.load_default()
+
+    def auto_text_color(self, img, x, y, w, h):
+        crop = img.crop((x, y, x+w, y+h)).convert("RGB")
+        pixels = list(crop.getdata())
+        avg = tuple(sum(c[i] for c in pixels)//len(pixels) for i in range(3))
+
+        brightness = sum(avg)/3
+        return (0,0,0,255) if brightness > 127 else (255,255,255,255)
+
+    def calculate_position(self, img_w, img_h, text_w, text_h):
+        margin = 20
+        pos = self.position.get()
+
+        if pos == "top-left":
+            return margin, margin
+        if pos == "top-right":
+            return img_w - text_w - margin, margin
+        if pos == "bottom-left":
+            return margin, img_h - text_h - margin
+        if pos == "bottom-right":
+            return img_w - text_w - margin, img_h - text_h - margin
+        return (img_w - text_w)//2, (img_h - text_h)//2
+
+    def process_images(self):
+        self.processed_images.clear()
+
+        for path in self.image_files:
+            img = Image.open(path).convert("RGBA")
+            draw = ImageDraw.Draw(img)
+
+            font = self.get_font(self.font_size.get())
+
+            text = os.path.splitext(os.path.basename(path))[0]
+
+            bbox = draw.textbbox((0, 0), text, font=font)
+            tw, th = bbox[2]-bbox[0], bbox[3]-bbox[1]
+
+            x, y = self.calculate_position(img.width, img.height, tw, th)
+
+            color = self.auto_text_color(img, x, y, tw, th)
+
+            draw.rectangle([x-10, y-10, x+tw+10, y+th+10], fill=(0,0,0,120))
+            draw.text((x, y), text, fill=color, font=font)
+
+            self.processed_images.append((img.copy(), path))
+
+        self.show_preview()
+
+    def show_preview(self):
+        for widget in self.preview_frame.winfo_children():
+            widget.destroy()
+
+        for i, (img, _) in enumerate(self.processed_images[:6]):
+            preview = img.resize((150,150))
+            tk_img = tk.PhotoImage(preview)
+            lbl = ttk.Label(self.preview_frame, image=tk_img)
+            lbl.image = tk_img
+            lbl.grid(row=i//3, column=i%3, padx=5, pady=5)
+
+        self.save_btn.config(state="normal")
+
+    def save_all(self):
+        for img, path in self.processed_images:
+            name = os.path.splitext(os.path.basename(path))[0]
+            out = os.path.join(self.output_folder, f"{name}.png")
+            img.save(out)
+
+        messagebox.showinfo("Saved", "All images saved successfully")
+
     def start_processing(self):
         if not self.image_files or not self.output_folder:
-            messagebox.showerror("Error", "Please select images and output folder!")
+            messagebox.showerror("Error", "Select input and output folders")
             return
-        
-        self.process_btn.config(state='disabled')
-        thread = threading.Thread(target=self.process_images)
-        thread.daemon = True
-        thread.start()
+
+        threading.Thread(target=self.process_images, daemon=True).start()
+
 
 def main():
     root = tk.Tk()
     app = ImageTextEmbedder(root)
     root.mainloop()
+
 
 if __name__ == "__main__":
     main()
