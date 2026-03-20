@@ -1,8 +1,8 @@
-# Advanced Professional Version with Requested Features
+# FINAL PROFESSIONAL VERSION (FIXED + UPGRADED)
 
 import tkinter as tk
 from tkinter import ttk, filedialog, messagebox
-from PIL import Image, ImageDraw, ImageFont
+from PIL import Image, ImageDraw, ImageFont, ImageTk
 import os
 import threading
 
@@ -10,11 +10,11 @@ class ImageTextEmbedder:
     def __init__(self, root):
         self.root = root
         self.root.title("Professional Image Text Processor")
-        self.root.geometry("800x650")
+        self.root.geometry("900x700")
 
         self.image_files = []
         self.output_folder = ""
-        self.processed_images = []  # store previews before saving
+        self.processed_images = []
 
         self.setup_ui()
 
@@ -44,8 +44,21 @@ class ImageTextEmbedder:
 
         ttk.Button(frame, text="Process Images", command=self.start_processing).pack(pady=10)
 
-        self.preview_frame = ttk.Frame(frame)
-        self.preview_frame.pack(fill="both", expand=True)
+        # Scrollable preview area
+        canvas = tk.Canvas(frame)
+        scrollbar = ttk.Scrollbar(frame, orient="vertical", command=canvas.yview)
+        self.preview_frame = ttk.Frame(canvas)
+
+        self.preview_frame.bind(
+            "<Configure>",
+            lambda e: canvas.configure(scrollregion=canvas.bbox("all"))
+        )
+
+        canvas.create_window((0, 0), window=self.preview_frame, anchor="nw")
+        canvas.configure(yscrollcommand=scrollbar.set)
+
+        canvas.pack(side="left", fill="both", expand=True)
+        scrollbar.pack(side="right", fill="y")
 
         self.save_btn = ttk.Button(frame, text="Save All Images", command=self.save_all, state="disabled")
         self.save_btn.pack(pady=10)
@@ -72,9 +85,10 @@ class ImageTextEmbedder:
     def auto_text_color(self, img, x, y, w, h):
         crop = img.crop((x, y, x+w, y+h)).convert("RGB")
         pixels = list(crop.getdata())
-        avg = tuple(sum(c[i] for c in pixels)//len(pixels) for i in range(3))
 
+        avg = tuple(sum(c[i] for c in pixels)//len(pixels) for i in range(3))
         brightness = sum(avg)/3
+
         return (0,0,0,255) if brightness > 127 else (255,255,255,255)
 
     def calculate_position(self, img_w, img_h, text_w, text_h):
@@ -120,12 +134,13 @@ class ImageTextEmbedder:
         for widget in self.preview_frame.winfo_children():
             widget.destroy()
 
-        for i, (img, _) in enumerate(self.processed_images[:6]):
-            preview = img.resize((150,150))
-            tk_img = tk.PhotoImage(preview)
+        for i, (img, _) in enumerate(self.processed_images):
+            preview = img.resize((150, 150))
+            tk_img = ImageTk.PhotoImage(preview)
+
             lbl = ttk.Label(self.preview_frame, image=tk_img)
             lbl.image = tk_img
-            lbl.grid(row=i//3, column=i%3, padx=5, pady=5)
+            lbl.grid(row=i//4, column=i%4, padx=5, pady=5)
 
         self.save_btn.config(state="normal")
 
