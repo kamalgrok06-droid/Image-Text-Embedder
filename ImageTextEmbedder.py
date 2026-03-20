@@ -1,10 +1,9 @@
-# FINAL PROFESSIONAL VERSION (FIXED + UPGRADED)
-
 import tkinter as tk
 from tkinter import ttk, filedialog, messagebox
 from PIL import Image, ImageDraw, ImageFont, ImageTk
 import os
 import threading
+
 
 class ImageTextEmbedder:
     def __init__(self, root):
@@ -38,13 +37,16 @@ class ImageTextEmbedder:
 
         ttk.Label(settings, text="Position").grid(row=1, column=0)
         self.position = tk.StringVar(value="bottom-right")
-        ttk.Combobox(settings, textvariable=self.position,
-                     values=["top-left", "top-right", "bottom-left", "bottom-right", "center"],
-                     state="readonly").grid(row=1, column=1)
+        ttk.Combobox(
+            settings,
+            textvariable=self.position,
+            values=["top-left", "top-right", "bottom-left", "bottom-right", "center"],
+            state="readonly"
+        ).grid(row=1, column=1)
 
         ttk.Button(frame, text="Process Images", command=self.start_processing).pack(pady=10)
 
-        # Scrollable preview area
+        # Scrollable preview
         canvas = tk.Canvas(frame)
         scrollbar = ttk.Scrollbar(frame, orient="vertical", command=canvas.yview)
         self.preview_frame = ttk.Frame(canvas)
@@ -66,8 +68,11 @@ class ImageTextEmbedder:
     def select_input_folder(self):
         folder = filedialog.askdirectory(title="Select Input Folder")
         if folder:
-            self.image_files = [os.path.join(folder, f) for f in os.listdir(folder)
-                                if f.lower().endswith((".png", ".jpg", ".jpeg", ".webp"))]
+            self.image_files = [
+                os.path.join(folder, f)
+                for f in os.listdir(folder)
+                if f.lower().endswith((".png", ".jpg", ".jpeg", ".webp"))
+            ]
             messagebox.showinfo("Loaded", f"{len(self.image_files)} images loaded")
 
     def select_output(self):
@@ -81,15 +86,6 @@ class ImageTextEmbedder:
             return ImageFont.truetype("Aptos.ttf", size)
         except:
             return ImageFont.load_default()
-
-    def auto_text_color(self, img, x, y, w, h):
-        crop = img.crop((x, y, x+w, y+h)).convert("RGB")
-        pixels = list(crop.getdata())
-
-        avg = tuple(sum(c[i] for c in pixels)//len(pixels) for i in range(3))
-        brightness = sum(avg)/3
-
-        return (0,0,0,255) if brightness > 127 else (255,255,255,255)
 
     def calculate_position(self, img_w, img_h, text_w, text_h):
         margin = 20
@@ -114,17 +110,25 @@ class ImageTextEmbedder:
 
             font = self.get_font(self.font_size.get())
 
+            # AUTO filename text
             text = os.path.splitext(os.path.basename(path))[0]
 
             bbox = draw.textbbox((0, 0), text, font=font)
-            tw, th = bbox[2]-bbox[0], bbox[3]-bbox[1]
+            tw, th = bbox[2] - bbox[0], bbox[3] - bbox[1]
 
             x, y = self.calculate_position(img.width, img.height, tw, th)
 
-            color = self.auto_text_color(img, x, y, tw, th)
+            # SMALL WHITE BOX
+            padding_x = 8
+            padding_y = 4
 
-            draw.rectangle([x-10, y-10, x+tw+10, y+th+10], fill=(0,0,0,120))
-            draw.text((x, y), text, fill=color, font=font)
+            draw.rectangle(
+                [x - padding_x, y - padding_y, x + tw + padding_x, y + th + padding_y],
+                fill=(255, 255, 255, 230)
+            )
+
+            # BLACK TEXT
+            draw.text((x, y), text, fill=(0, 0, 0, 255), font=font)
 
             self.processed_images.append((img.copy(), path))
 
@@ -140,7 +144,7 @@ class ImageTextEmbedder:
 
             lbl = ttk.Label(self.preview_frame, image=tk_img)
             lbl.image = tk_img
-            lbl.grid(row=i//4, column=i%4, padx=5, pady=5)
+            lbl.grid(row=i//4, column=i % 4, padx=5, pady=5)
 
         self.save_btn.config(state="normal")
 
